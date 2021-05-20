@@ -1,4 +1,4 @@
-plot2 <- function()
+plot4 <- function()
 {
   library(png)
   library(data.table)
@@ -40,11 +40,22 @@ plot2 <- function()
     powerdata$Time <- as.POSIXct(powerdata$Time, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
   }
   
-  filepath <- file.path(rootpath, "plot2.png")
+  filepath <- file.path(rootpath, "plot4.png")
   if(exists(filepath)) unlink(filepath)
   png(filepath)
+  par(mfrow = c(2,2))
   plot(powerdata$Time, powerdata$Gap, type = "l", xlab = "",
-       ylab = "Global Active Power (kilowatts)")
+       ylab = "Global Active Power")
+  plot(powerdata$Time, powerdata$Voltage, type = "l", xlab = "datetime",
+       ylab = "Voltage")
+  plot(powerdata$Time, powerdata$Sm1, type = "l", col = "black", xlab = "", 
+       ylab = "Energy sub metering")
+  lines(powerdata$Time, powerdata$Sm2, type = "l", col = "red")
+  lines(powerdata$Time, powerdata$Sm3, type = "l", col = "blue")
+  legend("topright", legend = c("Sub_metering_1", "Sub_metering_2", "Sub_metering_3"),
+         col = c("black", "red", "blue"), lty = rep(1, 3), bty = "n")
+  plot(powerdata$Time, powerdata$Grp, type = "l", xlab = "datetime",
+       ylab = "Global Reactive Power")
   dev.off()
   img <- readPNG(filepath)
   grid::grid.raster(img)
