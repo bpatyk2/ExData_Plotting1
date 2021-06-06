@@ -29,7 +29,6 @@ plot2 <- function()
                        colClasses = c("V1" = "myDate"), col.names = colNames)
     unlink(filepath)
     
-    powerdata <- subset(powerdata, Date <= "2007-02-02" & Date >= "2007-02-01")
     powerdata$Time <- as.POSIXct(paste(powerdata$Date, powerdata$Time), tz = "UTC", 
                                  format = "%Y-%m-%d %H:%M:%S")
     fwrite(powerdata, file.path(rootpath,"powerdata.txt"))

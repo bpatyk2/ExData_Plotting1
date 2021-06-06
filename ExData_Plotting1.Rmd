@@ -1,0 +1,164 @@
+---
+title: "Exploratory Data Analysis Plotting"
+author: "Brad Patyk"
+date: "5/20/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+This project involves analyzing electrical power consumption data for a single household provided from the UC Irvine Machine Learning Repository. Several plots will be created to explore different aspects of electrical power consumed over a two day period.
+
+## Loading the Data
+
+A path to a folder for plots is established at the root of the current working directory.
+
+```{r}
+rootpath <- file.path(".","Plots")
+```
+
+Create the URL to the desired data and retrieve the file name.
+
+```{r}
+URL <- "https://d396qusza40orc.cloudfront.net/exdata%2Fdata%2Fhousehold_power_consumption.zip"
+filename <- "household_power_consumption.zip"
+```
+
+If the plots folder at the root directory doesn't exist, create it.  A path to the data that will be created by this function is established so that it can be referenced on repeated runs so that the data does not have to be downloaded again.
+
+```{r}
+if(!dir.exists(rootpath)) dir.create(rootpath)
+filepath <- file.path(rootpath,"powerdata.txt")
+```
+
+Create a class that called "myDate" that will coerce "character" to "Date" since the retrieved data will be in a format that is difficult to work with, DD/MM/YYYY.  
+
+```{r}
+setClass('myDate')
+setAs("character", "myDate", function(from) as.Date(from, format = "%d/%m/%Y"))
+```
+
+Here is where the data will be retrieved and cleaned up.  If the data has been retrieved from a previous run, it will be present in the plots folder as powerdata.txt, so check the validity of filepath.  If the data is required it is downloaded and unzipped to the plots folder.  A vector of column names is created since the file header will be lost when reading in the data using fread.  The data.table package has a function named fread that can be used to reduce read in time by almost half when compared to read.table.  By using fread with the grep inline command, the lines of the file can be read only when the start of the line matches a regular expression that represents desired dates.  Parameter colClasses is used to set the first column to class "Date" using the previous custom class, and col.names is set to the established column name vector.  The second column is converted to a POSIXct class.  Cleaned up data is now written back to a text file named powerdata.txt, which will be useful for future repeated runs.
+
+```{r}
+library(data.table)
+
+if(!file.exists(filepath))
+{
+  filepath <- file.path(rootpath, filename)
+  download.file(URL, filepath, 'curl')
+  unzip(filepath, exdir = rootpath)
+  unlink(filepath)
+    
+  filepath <- file.path(rootpath,"household_power_consumption.txt")
+    
+  colNames <- c("Date","Time","Gap","Grp","Voltage","GI","Sm1","Sm2","Sm3")
+    
+  powerdata <- fread(cmd = paste('grep -E "^1/2/2007|^2/2/2007"', filepath), 
+                       colClasses = c("V1" = "myDate"), col.names = colNames)
+  unlink(filepath)
+    
+  powerdata$Time <- as.POSIXct(paste(powerdata$Date, powerdata$Time), tz = "UTC", 
+                               format = "%Y-%m-%d %H:%M:%S")
+  fwrite(powerdata, file.path(rootpath,"powerdata.txt"))
+}else 
+{
+  powerdata <- fread(filepath)
+  powerdata$Time <- as.POSIXct(powerdata$Time, tz = "UTC", format = "%Y-%m-%d %H:%M:%S")
+}
+```
+
+## Making the Plots
+
+```{r}
+library(png)
+
+filepath <- file.path(rootpath, "plot1.png")
+if(exists(filepath)) unlink(filepath)
+png(filepath)
+hist(powerdata$Gap, col = "red", main = "Global Active Power", 
+     xlab = "Global Active Power (kilowatts)")
+dev.off()
+img <- readPNG(filepath)
+grid::grid.raster(img)
+```
+
+next
+
+```{r}
+filepath <- file.path(rootpath, "plot2.png")
+if(exists(filepath)) unlink(filepath)
+png(filepath)
+plot(powerdata$Time, powerdata$Gap, type = "l", xlab = "", 
+     ylab = "Global Active Power (kilowatts)")
+dev.off()
+img <- readPNG(filepath)
+grid::grid.raster(img)
+```
+
+next
+
+```{r}
+filepath <- file.path(rootpath, "plot3.png")
+if(exists(filepath)) unlink(filepath)
+png(filepath)
+plot(powerdata$Time, powerdata$Sm1, type = "l", col = "black", xlab = "", 
+     ylab = "Energy sub metering")
+lines(powerdata$Time, powerdata$Sm2, type = "l", col = "red")
+lines(powerdata$Time, powerdata$Sm3, type = "l", col = "blue")
+legend("topright", legend = c("Sub_metering_1", "Sub_metering_2", "Sub_metering_3"), 
+       col = c("black", "red", "blue"), lty = rep(1, 3))
+dev.off()
+img <- readPNG(filepath)
+grid::grid.raster(img)
+```
+
+next
+
+```{r}
+filepath <- file.path(rootpath, "plot4.png")
+if(exists(filepath)) unlink(filepath)
+png(filepath)
+par(mfrow = c(2,2))
+plot(powerdata$Time, powerdata$Gap, type = "l", xlab = "", 
+     ylab = "Global Active Power")
+plot(powerdata$Time, powerdata$Voltage, type = "l", xlab = "datetime", 
+     ylab = "Voltage")
+plot(powerdata$Time, powerdata$Sm1, type = "l", col = "black", xlab = "", 
+     ylab = "Energy sub metering")
+lines(powerdata$Time, powerdata$Sm2, type = "l", col = "red")
+lines(powerdata$Time, powerdata$Sm3, type = "l", col = "blue")
+legend("topright", legend = c("Sub_metering_1", "Sub_metering_2", "Sub_metering_3"), 
+       col = c("black", "red", "blue"), lty = rep(1, 3), bty = "n")
+plot(powerdata$Time, powerdata$Grp, type = "l", xlab = "datetime", 
+     ylab = "Global Reactive Power")
+dev.off()
+img <- readPNG(filepath)
+grid::grid.raster(img)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
