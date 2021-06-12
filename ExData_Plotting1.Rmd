@@ -1,53 +1,67 @@
 ---
-title: "Exploratory Data Analysis Plotting"
+title: "Exploring Data With Plots"
 author: "Brad Patyk"
 date: "5/20/2021"
 output:
-  pdf_document: default
-  html_document: default
+  rmarkdown::pdf_document:
+    fig_caption: yes        
+    includes:  
+      in_header: my_header.tex
 ---
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
 
 ## Introduction
 
-This project involves analyzing electrical power consumption data for a single household provided from the UC Irvine Machine Learning Repository. Several plots will be created to explore different aspects of electrical power consumed over a two day period.
+This project involves analyzing a sample of electrical power consumption data for a single household provided from the UC Irvine Machine Learning Repository. A number of plots are created to explore different aspects about electrical power consumption over a two day period.
+
+
 
 ## Loading the Data
 
-A path to a folder for plots is established at the root of the current working directory.
+Needed libraries are loaded such as data.table for the fread command, as well as png and grid in order to show the plots created.
 
-```{r}
+```{r libraries, message = F, warning = F}
+library(data.table)
+library(png)
+library(grid)
+```
+
+
+A path to a folder for the created plots is established at the root of the current working directory.
+
+```{r root}
 rootpath <- file.path(".","Plots")
 ```
 
-Create the URL to the desired data and retrieve the file name.
 
-```{r}
+Create the URL to the desired data and retrieve the data file name.
+
+```{r dataURL}
 URL <- "https://d396qusza40orc.cloudfront.net/exdata%2Fdata%2Fhousehold_power_consumption.zip"
 filename <- "household_power_consumption.zip"
 ```
 
+
 If the plots folder at the root directory doesn't exist, create it.  A path to the data that will be created by this function is established so that it can be referenced on repeated runs so that the data does not have to be downloaded again.
 
-```{r}
+```{r datafile}
 if(!dir.exists(rootpath)) dir.create(rootpath)
 filepath <- file.path(rootpath,"powerdata.txt")
 ```
 
-Create a class that called "myDate" that will coerce "character" to "Date" since the retrieved data will be in a format that is difficult to work with, DD/MM/YYYY.  
 
-```{r}
+Create a class called "myDate" that will coerce class "character" to class "Date" since the retrieved data will be in a format that is difficult to work with, DD/MM/YYYY.  
+
+```{r dateclass}
 setClass('myDate')
 setAs("character", "myDate", function(from) as.Date(from, format = "%d/%m/%Y"))
 ```
 
-Here is where the data will be retrieved and cleaned up.  If the data has been retrieved from a previous run, it will be present in the plots folder as powerdata.txt, so check the validity of filepath.  If the data is required it is downloaded and unzipped to the plots folder.  A vector of column names is created since the file header will be lost when reading in the data using fread.  The data.table package has a function named fread that can be used to reduce read in time by almost half when compared to read.table.  By using fread with the grep inline command, the lines of the file can be read only when the start of the line matches a regular expression that represents desired dates.  Parameter colClasses is used to set the first column to class "Date" using the previous custom class, and col.names is set to the established column name vector.  The second column is converted to a POSIXct class.  Cleaned up data is now written back to a text file named powerdata.txt, which will be useful for future repeated runs.
 
-```{r}
-library(data.table)
+Now the data will be retrieved and cleaned up.  If the data has been retrieved from a previous run, it will be present in the plots folder as powerdata.txt, so check the validity of filepath.  If the data is required it is downloaded and unzipped to the plots folder.  A vector of column names is created since the file header will be lost when reading in the data using fread.  The data.table package has a function named fread that can be used to reduce read in time by almost half when compared to read.table.  By using fread with the grep inline command, the lines of the file can be read only when the start of the line matches a regular expression that represents desired dates.  
+
+Parameter colClasses is used to set the first column to class "Date" using the previous custom class, and col.names is set to the established column name vector.  The second column which contains the time is converted to a POSIXct class.  Cleaned up data is now written back to a text file named powerdata.txt, which will be useful for future repeated runs.
+
+```{r download}
 
 if(!file.exists(filepath))
 {
@@ -57,14 +71,14 @@ if(!file.exists(filepath))
   unlink(filepath)
     
   filepath <- file.path(rootpath,"household_power_consumption.txt")
-    
   colNames <- c("Date","Time","Gap","Grp","Voltage","GI","Sm1","Sm2","Sm3")
-    
   powerdata <- fread(cmd = paste('grep -E "^1/2/2007|^2/2/2007"', filepath), 
-                       colClasses = c("V1" = "myDate"), col.names = colNames)
+                     colClasses = c("V1" = "myDate"), 
+                     col.names = colNames)
   unlink(filepath)
-    
-  powerdata$Time <- as.POSIXct(paste(powerdata$Date, powerdata$Time), tz = "UTC", 
+  
+  powerdata$Time <- as.POSIXct(paste(powerdata$Date, powerdata$Time), 
+                               tz = "UTC", 
                                format = "%Y-%m-%d %H:%M:%S")
   fwrite(powerdata, file.path(rootpath,"powerdata.txt"))
 }else 
@@ -74,40 +88,57 @@ if(!file.exists(filepath))
 }
 ```
 
+
+
 ## Making the Plots
 
-```{r}
-library(png)
+The first plot will be a simple histogram that shows how often certain ranges of Global Active Power occurred over the observed period.
+
+```{r plot1, results = 'hide'}
 
 filepath <- file.path(rootpath, "plot1.png")
 if(exists(filepath)) unlink(filepath)
-png(filepath)
+png(filepath, width = 800, height = 600)
 hist(powerdata$Gap, col = "red", main = "Global Active Power", 
      xlab = "Global Active Power (kilowatts)")
 dev.off()
-img <- readPNG(filepath)
-grid::grid.raster(img)
 ```
 
-next
 
-```{r}
+Nothing too fancy being done with this plot.  It is simply made red with some added titles.  For a majority of the observed period, power consumption is mostly below 1.5 kWatts.
+
+```{r showplot1, fig.cap = 'Histogram of Global Active Power'}
+img <- readPNG(filepath)
+grid.raster(img)
+```
+
+
+The second plot will use the base plot command to show Global Active Power as a function of time over the two day period.
+
+```{r plot2, results = 'hide'}
 filepath <- file.path(rootpath, "plot2.png")
 if(exists(filepath)) unlink(filepath)
-png(filepath)
+png(filepath, width = 800, height = 600)
 plot(powerdata$Time, powerdata$Gap, type = "l", xlab = "", 
      ylab = "Global Active Power (kilowatts)")
 dev.off()
-img <- readPNG(filepath)
-grid::grid.raster(img)
 ```
 
-next
 
-```{r}
+Again, nothing fancy, just a simple line plot with titles is shown.  This plot shows that there are discernible periods of the day where power consumption is significant.
+
+```{r showplot2, fig.cap = 'Global active power plotted over a two day period'}
+img <- readPNG(filepath)
+grid.raster(img)
+```
+
+
+The third plot will use the base plot command to show power consumption by meter type.  Lines are added to the plot that represent a different meter associated with certain appliances within a household. 
+
+```{r plot3, results = 'hide'}
 filepath <- file.path(rootpath, "plot3.png")
 if(exists(filepath)) unlink(filepath)
-png(filepath)
+png(filepath, width = 800, height = 600)
 plot(powerdata$Time, powerdata$Sm1, type = "l", col = "black", xlab = "", 
      ylab = "Energy sub metering")
 lines(powerdata$Time, powerdata$Sm2, type = "l", col = "red")
@@ -115,16 +146,23 @@ lines(powerdata$Time, powerdata$Sm3, type = "l", col = "blue")
 legend("topright", legend = c("Sub_metering_1", "Sub_metering_2", "Sub_metering_3"), 
        col = c("black", "red", "blue"), lty = rep(1, 3))
 dev.off()
-img <- readPNG(filepath)
-grid::grid.raster(img)
 ```
 
-next
 
-```{r}
+Each meter type is given a different color and placed on the same plot to compare results between them.  You may notice a lot of variability between when and how much power is used between each meter.
+
+```{r showplot3, fig.cap = 'Power consumption compared between meters'}
+img <- readPNG(filepath)
+grid.raster(img)
+```
+
+
+The last plot is merely a demonstration of grouping plots together.  Four simple plots are created with the base plot command as before and are arranged in a 2 x 2 grid layout.
+
+```{r plot4, results = 'hide'}
 filepath <- file.path(rootpath, "plot4.png")
 if(exists(filepath)) unlink(filepath)
-png(filepath)
+png(filepath, width = 1200, height = 800)
 par(mfrow = c(2,2))
 plot(powerdata$Time, powerdata$Gap, type = "l", xlab = "", 
      ylab = "Global Active Power")
@@ -139,26 +177,12 @@ legend("topright", legend = c("Sub_metering_1", "Sub_metering_2", "Sub_metering_
 plot(powerdata$Time, powerdata$Grp, type = "l", xlab = "datetime", 
      ylab = "Global Reactive Power")
 dev.off()
-img <- readPNG(filepath)
-grid::grid.raster(img)
 ```
 
 
+Various legends, colors, and titles are applied for each plot, and you can see all at once, various kinds of information about the electrical power consumption we have explored.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+```{r showplot4, fig.cap = 'Grouping plots together'}
+img <- readPNG(filepath)
+grid.raster(img)
+```
